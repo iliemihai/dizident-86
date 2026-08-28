@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090909">
+  <title>Dizident 86</title>
+  <style>
+    :root{--amber:#e4a457;--paper:#d7c89e;--danger:#b53a2b;--night:#0b1219}
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;background:#050607;color:#eadfc4;overflow:hidden;font-family:"Courier New",Courier,monospace}
+    button{font:inherit}
+    #shell{width:100%;height:100%;display:grid;place-items:center;padding:clamp(0px,2vw,22px);background:radial-gradient(circle at 50% 42%,#26221d 0,#0d0e10 48%,#030405 100%)}
+    #game{position:relative;width:min(100%,calc(100svh * 16 / 9));aspect-ratio:16/9;overflow:hidden;isolation:isolate;background:#171714;border:3px solid #201b16;box-shadow:0 0 0 2px #000,0 30px 100px #000;image-rendering:pixelated;touch-action:none;user-select:none}
+    #room{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;pointer-events:none}
+    #game::before{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;background:radial-gradient(circle at 31% 59%,rgba(255,175,68,.10),transparent 29%),linear-gradient(90deg,transparent 0 75%,rgba(8,11,14,.08) 75%);mix-blend-mode:screen}
+    #game::after{content:"";position:absolute;inset:0;z-index:30;pointer-events:none;opacity:.10;background:repeating-linear-gradient(0deg,transparent 0 3px,#000 3px 4px),radial-gradient(ellipse,transparent 50%,#000 112%)}
+    #fx{position:absolute;inset:0;width:100%;height:100%;z-index:5;pointer-events:none;image-rendering:pixelated}
+    #lampFlicker{position:absolute;inset:0;z-index:6;pointer-events:none;opacity:.24;background:radial-gradient(circle at 18% 48%,rgba(255,164,55,.34),transparent 33%);mix-blend-mode:screen;animation:lamp 4.8s steps(9,end) infinite}
+    #coldBreath{position:absolute;inset:0;z-index:7;pointer-events:none;background:linear-gradient(90deg,transparent 55%,rgba(36,82,116,.08));mix-blend-mode:screen}
+    #doorGlow{position:absolute;z-index:8;left:81.5%;top:70.7%;width:17%;height:1.1%;opacity:.16;background:#ffd27e;box-shadow:0 0 13px 6px rgba(241,171,76,.35);transition:opacity 1.2s linear;pointer-events:none}
+    #needle{position:absolute;z-index:9;top:54.2%;left:45%;width:max(2px,.18%);height:10.4%;background:#9a2118;box-shadow:0 0 3px #ff5540;transition:left .06s linear;pointer-events:none}
+    #knobVisual{position:absolute;z-index:9;left:61.1%;top:68.4%;width:4.8%;aspect-ratio:1;border-radius:50%;border:2px solid rgba(238,195,124,.28);pointer-events:none;transform:rotate(-135deg)}
+    #knobVisual::after{content:"";position:absolute;left:48%;top:5%;width:8%;height:30%;background:#d8bc86;box-shadow:0 0 2px #000}
+    #signalEye{position:absolute;z-index:10;left:57%;top:58.3%;width:.7%;aspect-ratio:1;border-radius:50%;background:#5a301d;box-shadow:0 0 0 1px #2a1c15;transition:background .15s,box-shadow .15s;pointer-events:none}
+    #signalEye.live{background:#e4a457;box-shadow:0 0 7px 3px rgba(255,172,62,.65)}
+    #outsideLights{position:absolute;z-index:7;left:50.2%;top:0;width:26.2%;height:37.8%;pointer-events:none;overflow:hidden}
+    #outsideLights i{position:absolute;width:1.1%;height:2.1%;min-width:2px;min-height:2px;background:#dab373;box-shadow:0 0 4px rgba(222,177,105,.5);animation:flatLight 17s steps(1,end) infinite}
+    #outsideLights i:nth-child(1){left:24%;top:46%;animation-delay:-2s}#outsideLights i:nth-child(2){left:37%;top:65%;animation-delay:-8s}#outsideLights i:nth-child(3){left:69%;top:52%;animation-delay:-13s}#outsideLights i:nth-child(4){left:83%;top:72%;animation-delay:-5s}
+    .periodLabel{position:absolute;z-index:8;color:rgba(39,28,19,.68);font-family:Georgia,serif;font-weight:900;pointer-events:none;mix-blend-mode:multiply;text-shadow:none}
+    #carpatiLabel{left:5.1%;top:82.2%;font-size:clamp(4px,.55vw,9px);transform:rotate(-5deg);letter-spacing:.05em}
+    #scinteiaLabel{left:75.8%;top:80.5%;font-size:clamp(5px,.7vw,11px);transform:rotate(7deg);letter-spacing:.08em}
+    .hotspot{position:absolute;z-index:13;border:0;background:transparent;color:transparent;padding:0;cursor:pointer;outline:none}
+    .hotspot:focus-visible{box-shadow:inset 0 0 0 2px rgba(244,203,127,.8)}
+    #hitZone{left:30.4%;top:47.2%;width:37.6%;height:24%}
+    #tuneZone{left:58.5%;top:64%;width:10%;height:17%;cursor:ew-resize}
+    #hushZone{right:0;top:28%;width:19%;height:66%;display:none;cursor:pointer}
+    #hushZone.active{display:block}
+    #hand{position:absolute;z-index:18;display:none;pointer-events:none;image-rendering:pixelated;filter:saturate(.88) contrast(1.05)}
+    #hand.hit{display:block;width:62%;right:-5%;bottom:-28%;animation:hitHand .68s steps(7,end) both}
+    #hand.tune{display:block;width:62%;right:-3%;bottom:-26%;transform-origin:72% 63%;animation:tuneIn .17s steps(3,end) both}
+    #hand.shhh{display:block;width:43%;left:29%;bottom:-20%;animation:shhhHand 2s steps(8,end) both}
+    #notebook{position:absolute;z-index:11;left:62.7%;top:78.5%;width:14.7%;min-height:11%;padding:.7% .9%;transform:rotate(3deg);color:#332b20;text-shadow:none;font-size:clamp(5px,.72vw,12px);line-height:1.45;pointer-events:none}
+    #notebook b{display:block;font-weight:700;opacity:.8}.blank{opacity:.35}.written{animation:ink .8s steps(5,end) both}
+    .prompt{position:absolute;z-index:22;display:none;color:#f4dfb7;background:#17130f;border:1px solid #b88b50;padding:.45em .7em;font-size:clamp(8px,.85vw,14px);letter-spacing:.08em;box-shadow:4px 4px 0 rgba(0,0,0,.7);pointer-events:none;animation:promptPulse 1.1s steps(2,end) infinite}
+    .prompt.show{display:block}
+    #promptFix{left:47%;top:44%}#promptTune{left:61%;top:61%}#promptShhh{right:7%;top:42%}
+    #subtitle{position:absolute;z-index:24;left:50%;bottom:3.2%;max-width:78%;transform:translateX(-50%);padding:.42em .72em;color:#f0e8d6;background:rgba(3,4,5,.82);border-left:3px solid var(--amber);font-size:clamp(10px,1.15vw,19px);line-height:1.35;text-align:center;opacity:0;transition:opacity .15s;pointer-events:none;text-shadow:1px 1px #000}
+    #subtitle.show{opacity:1}
+    #notice{position:absolute;z-index:23;left:50%;top:10%;transform:translateX(-50%);color:#e9d7af;font-size:clamp(8px,.85vw,14px);letter-spacing:.18em;text-shadow:2px 2px #000;opacity:0;transition:opacity .2s;pointer-events:none}
+    #notice.show{opacity:1}
+    #controls{position:absolute;z-index:26;right:1.4%;top:2%;display:flex;gap:.4em}
+    .tiny{border:1px solid rgba(213,190,145,.35);background:rgba(8,8,8,.62);color:#bfb299;padding:.45em .55em;cursor:pointer;font-size:clamp(7px,.7vw,11px);letter-spacing:.05em}
+    .tiny:hover,.tiny:focus-visible{color:#fff1c9;border-color:#c6934e}
+    #titleLayer,#choiceLayer,#endLayer{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(4,5,6,.78);text-shadow:3px 3px #000;padding:5%}
+    #titleLayer::before{content:"";position:absolute;inset:0;background:radial-gradient(circle,transparent 0 25%,rgba(0,0,0,.7) 80%);pointer-events:none}
+    .over-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center}
+    .kicker{margin:0 0 1.5%;color:#9f937a;font-size:clamp(7px,.9vw,14px);letter-spacing:.25em}
+    h1{margin:0;color:#dfd0aa;font-size:clamp(40px,7.2vw,112px);line-height:.86;letter-spacing:.075em;font-weight:900}
+    .tagline{margin:2.3% 0 3%;color:#cabfa8;font-size:clamp(10px,1.15vw,18px)}
+    .primary,.choice{border:0;background:#c49350;color:#18120d;padding:.8em 1.2em;box-shadow:5px 5px 0 #4b2e1a;font-weight:900;letter-spacing:.075em;cursor:pointer;font-size:clamp(9px,1vw,16px)}
+    .primary:hover,.primary:focus-visible,.choice:hover,.choice:focus-visible{background:#f1c572;transform:translate(1px,1px);box-shadow:3px 3px 0 #4b2e1a}
+    .title-options{display:flex;gap:.55em;margin-top:2%}
+    .warning{margin-top:2%;color:#766e61;font-size:clamp(6px,.65vw,10px);letter-spacing:.12em}
+    #choiceLayer,#endLayer{display:none;background:rgba(3,4,5,.86)}
+    #choiceLayer.show,#endLayer.show{display:flex}
+    #choiceLayer h2,#endLayer h2{margin:0 0 2%;color:#e3d4ae;font-size:clamp(24px,4vw,64px);letter-spacing:.09em}
+    #choiceLayer p,#endLayer p{max-width:620px;margin:0 0 2.5%;color:#c8bda6;font-size:clamp(9px,1.1vw,17px);line-height:1.5}
+    .choice-row{display:flex;gap:1em;flex-wrap:wrap;justify-content:center}
+    .choice.secondary{background:#51483b;color:#e5d8bd;box-shadow:5px 5px 0 #17130f}
+    #endLayer[data-ending="raid"] h2{color:#bf4737}
+    #endingCode{display:block;color:#a89a80;margin-top:1%;letter-spacing:.15em;font-size:clamp(8px,.8vw,13px)}
+    #game.hit-shake{animation:sceneHit .55s steps(6,end)}
+    #game.door-shake{animation:doorHit 1.15s steps(9,end)}
+    #game.raid{animation:raidScene 2.3s steps(13,end) forwards}
+    #game.escape #room{animation:escapeRoom 3s ease-in forwards}
+    #game.escape #fx{filter:brightness(1.45) saturate(.7)}
+    @keyframes lamp{0%,17%,23%,100%{opacity:.25}18%{opacity:.12}19%{opacity:.32}67%{opacity:.2}68%{opacity:.29}}
+    @keyframes flatLight{0%,74%,100%{opacity:.82}75%,96%{opacity:.08}}
+    @keyframes promptPulse{50%{filter:brightness(1.35)}}
+    @keyframes hitHand{0%{opacity:0;transform:translate(22%,34%) rotate(18deg)}30%{opacity:1;transform:translate(2%,5%) rotate(2deg)}48%{transform:translate(-3%,-8%) rotate(-7deg)}62%{transform:translate(0,3%) rotate(1deg)}100%{opacity:0;transform:translate(16%,28%) rotate(13deg)}}
+    @keyframes tuneIn{0%{opacity:0;transform:translate(14%,20%) rotate(8deg)}100%{opacity:1;transform:translate(0,0) rotate(0)}}
+    @keyframes shhhHand{0%{opacity:0;transform:translateY(35%)}18%,78%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(25%)}}
+    @keyframes sceneHit{0%,100%{transform:translate(0)}20%{transform:translate(-1.1%,.8%)}42%{transform:translate(.8%,-.5%)}63%{transform:translate(-.35%,.4%)}}
+    @keyframes doorHit{0%,100%{transform:translate(0)}12%{transform:translate(-.7%,0)}20%{transform:translate(.7%,0)}35%{transform:translate(-.4%,.2%)}55%{transform:translate(.3%,-.2%)}}
+    @keyframes raidScene{0%{filter:none}45%{transform:translate(-1%,.3%);filter:contrast(1.2)}60%{transform:translate(1.3%,-.7%);filter:brightness(1.5) sepia(.4)}72%{transform:translate(-1.8%,.8%);filter:brightness(.8)}100%{filter:brightness(0);transform:scale(1.04)}}
+    @keyframes escapeRoom{to{filter:brightness(.3) saturate(.55);transform:scale(1.035)}}
+    @keyframes ink{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0)}}
+    @media(max-width:740px),(max-height:500px){#shell{padding:0}#game{width:100vw;max-height:100svh;border:0}.title-options{margin-top:4%}.prompt{font-size:7px}#controls{top:1%;right:1%}}
+    @media(prefers-reduced-motion:reduce){#lampFlicker{animation:none}.prompt{animation:none}}
+  </style>
+</head>
+<body>
+  <main id="shell">
+    <section id="game" aria-label="Dizident 86 interactive game scene">
+      <img id="room" src="assets/dizident-86-room.png" alt="A cramped Romanian apartment in Bucharest, winter 1987">
+      <canvas id="fx" width="480" height="270" aria-hidden="true"></canvas>
+      <div id="lampFlicker" aria-hidden="true"></div>
+      <div id="coldBreath" aria-hidden="true"></div>
+      <div id="doorGlow" aria-hidden="true"></div>
+      <div id="needle" aria-hidden="true"></div>
+      <div id="knobVisual" aria-hidden="true"></div>
+      <div id="signalEye" aria-hidden="true"></div>
+      <div id="outsideLights" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <span id="carpatiLabel" class="periodLabel" aria-hidden="true">CARPAȚI</span>
+      <span id="scinteiaLabel" class="periodLabel" aria-hidden="true">SCÎNTEIA</span>
+
+      <button id="hitZone" class="hotspot" aria-label="Hit the radio">Hit radio</button>
+      <button id="tuneZone" class="hotspot" aria-label="Tune the radio" title="Drag left or right to tune">Tune radio</button>
+      <button id="hushZone" class="hotspot" aria-label="Quiet the child">Quiet child</button>
+      <img id="hand" alt="" aria-hidden="true">
+
+      <div id="notebook" aria-live="polite">
+        <b id="noteA" class="blank">44° __′ N</b>
+        <b id="noteB" class="blank">25° __′ E</b>
+        <b id="noteC" class="blank">ORA __:__</b>
+      </div>
+
+      <span id="promptFix" class="prompt">FIX IT</span>
+      <span id="promptTune" class="prompt">TUNE</span>
+      <span id="promptShhh" class="prompt">SHHH</span>
+      <div id="notice" aria-live="polite"></div>
+      <div id="subtitle" role="status" aria-live="polite"></div>
+
+      <nav id="controls" aria-label="Game settings">
+        <button id="langButton" class="tiny" type="button">SUB: RO</button>
+        <button id="muteButton" class="tiny" type="button">SOUND: ON</button>
+      </nav>
+
+      <section id="titleLayer" aria-labelledby="gameTitle">
+        <div class="over-content">
+          <p class="kicker">BUCUREȘTI · IARNA 1987</p>
+          <h1 id="gameTitle">DIZIDENT 86</h1>
+          <p class="tagline">The walls are thin. Listen carefully.</p>
+          <button id="startButton" class="primary" type="button">PUT ON HEADPHONES</button>
+          <div class="title-options">
+            <button id="titleLang" class="tiny" type="button">SUBTITLES: ROMÂNĂ</button>
+            <button id="titleMute" class="tiny" type="button">SOUND: ON</button>
+          </div>
+          <small class="warning">A 7–10 MINUTE AUDIO-FIRST EXPERIENCE · ESC TO ABANDON</small>
+        </div>
+      </section>
+
+      <section id="choiceLayer" aria-labelledby="choiceTitle">
+        <h2 id="choiceTitle">THE MESSAGE IS COMPLETE</h2>
+        <p>44°18′ N · 25°32′ E · 02:30<br>The balcony is still clear. The steps are one floor away.</p>
+        <div class="choice-row">
+          <button id="escapeButton" class="choice" type="button">TAKE THE CHILD — BALCONY</button>
+          <button id="silenceButton" class="choice secondary" type="button">KILL THE RADIO</button>
+        </div>
+      </section>
+
+      <section id="endLayer" aria-labelledby="endTitle">
+        <h2 id="endTitle"></h2>
+        <p id="endCopy"></p>
+        <span id="endingCode"></span>
+        <button id="restartButton" class="primary" type="button">LISTEN AGAIN</button>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+      const $ = (id) => document.getElementById(id);
+      const game = $('game');
+      const hand = $('hand');
+      const hitZone = $('hitZone');
+      const tuneZone = $('tuneZone');
+      const hushZone = $('hushZone');
+      const needle = $('needle');
+      const knobVisual = $('knobVisual');
+      const signalEye = $('signalEye');
+      const doorGlow = $('doorGlow');
+      const subtitleEl = $('subtitle');
+      const noticeEl = $('notice');
+      const choiceLayer = $('choiceLayer');
+      const endLayer = $('endLayer');
+      const fast = new URLSearchParams(location.search).has('fast');
+
+      const targets = [0.22, 0.55, 0.82];
+      const gates = fast ? [5, 16, 28] : [75, 240, 420];
+      const needed = fast ? [3, 4, 5] : [30, 42, 50];
+      const doorTimes = fast ? [8, 19, 31] : [95, 255, 385];
+      const doorDanger = [38, 60, 80];
+      const fragments = [
+        { ro:'Patru-patru... optsprezece... Nord.', en:'Four-four... eighteen... North.', note:'44° 18′ N' },
+        { ro:'Doi-cinci... treizeci și doi... Est.', en:'Two-five... thirty-two... East.', note:'25° 32′ E' },
+        { ro:'Plecarea... zero doi și treizeci. Repet: zero doi și treizeci.', en:'Departure... zero two thirty. Repeat: zero two thirty.', note:'ORA 02:30' }
+      ];
+      const securityLines = [
+        { ro:'SECURITATEA! Deschideți!', en:'SECURITATE! Open the door!' },
+        { ro:'Nu spargeți ușa! Copiii dorm!', en:'Don’t break the door! The children are sleeping!' },
+        { ro:'La parter. Verificați și apartamentele de la parter.', en:'Ground floor. Check the ground-floor flats too.' }
+      ];
+
+      const state = {
+        mode:'title', elapsed:0, last:0, working:false, tune:0.07, target:targets[0],
+        stage:0, decode:0, noiseHeat:0, danger:10, crying:false, hush:0,
+        dragging:false, dragX:0, dragTune:0, nextChild:fast?11:118, nextCryPulse:0,
+        nextStep:12, doorIndex:0, lang:'ro', muted:false, promptFix:true,
+        promptTune:true, promptShhh:true, fragmentBusy:false
+      };
+
+      let audio = null;
+      let subtitleTimer = 0;
+      let noticeTimer = 0;
+      let handTimer = 0;
+
+      class Soundscape {
+        constructor() {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+          this.master = this.ctx.createGain();
+          this.master.gain.value = .78;
+          this.master.connect(this.ctx.destination);
+          this.noiseBuffer = this.makeNoise(3);
+          this.radioGain = this.loopNoise('bandpass', 2650, .0001);
+          this.windGain = this.loopNoise('lowpass', 520, .026);
+          this.hum = this.ctx.createOscillator();
+          const humGain = this.ctx.createGain();
+          this.hum.type = 'sine'; this.hum.frequency.value = 50;
+          humGain.gain.value = .012; this.hum.connect(humGain).connect(this.master); this.hum.start();
+        }
+        makeNoise(seconds) {
+          const b = this.ctx.createBuffer(1, this.ctx.sampleRate*seconds, this.ctx.sampleRate);
+          const d = b.getChannelData(0);
+          for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(.72+Math.random()*.28);
+          return b;
+        }
+        loopNoise(type,freq,volume) {
+          const src=this.ctx.createBufferSource(), filter=this.ctx.createBiquadFilter(), gain=this.ctx.createGain();
+          src.buffer=this.noiseBuffer; src.loop=true; filter.type=type; filter.frequency.value=freq;
+          gain.gain.value=volume; src.connect(filter).connect(gain).connect(this.master); src.start(); return gain;
+        }
+        setRadio(amount) {
+          const value=state.muted?0:Math.max(.0001,amount);
+          this.radioGain.gain.setTargetAtTime(value,this.ctx.currentTime,.07);
+          this.windGain.gain.setTargetAtTime(state.muted?.0001:.026,this.ctx.currentTime,.25);
+          this.master.gain.setTargetAtTime(state.muted?.0001:.78,this.ctx.currentTime,.08);
+        }
+        thud(strength=.7,delay=0) {
+          setTimeout(()=>{
+            if(state.muted)return;
+            const now=this.ctx.currentTime, osc=this.ctx.createOscillator(), gain=this.ctx.createGain();
+            osc.type='sine'; osc.frequency.setValueAtTime(92,now); osc.frequency.exponentialRampToValueAtTime(38,now+.24);
+            gain.gain.setValueAtTime(.0001,now); gain.gain.exponentialRampToValueAtTime(.23*strength,now+.012); gain.gain.exponentialRampToValueAtTime(.0001,now+.34);
+            osc.connect(gain).connect(this.master); osc.start(now); osc.stop(now+.36);
+            this.burst(.09,.12*strength,1100,now);
+          },delay);
+        }
+        burst(duration=.12,volume=.12,freq=1700,startAt=null) {
+          if(state.muted)return;
+          const now=startAt??this.ctx.currentTime, src=this.ctx.createBufferSource(), filter=this.ctx.createBiquadFilter(), gain=this.ctx.createGain();
+          src.buffer=this.noiseBuffer; filter.type='bandpass'; filter.frequency.value=freq; filter.Q.value=.7;
+          gain.gain.setValueAtTime(volume,now); gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
+          src.connect(filter).connect(gain).connect(this.master); src.start(now); src.stop(now+duration+.03);
+        }
+        hit() { this.thud(1); this.burst(.16,.2,2100); }
+        door() { this.thud(1.2,0); this.thud(1.05,260); this.thud(1.45,610); this.burst(.55,.18,800,this.ctx.currentTime+.61); }
+        step(intensity=.5) { this.thud(.16+intensity*.28); }
+        child() {
+          if(state.muted)return;
+          const now=this.ctx.currentTime;
+          for(let j=0;j<2;j++){
+            const osc=this.ctx.createOscillator(), gain=this.ctx.createGain(), t=now+j*.62;
+            osc.type='triangle'; osc.frequency.setValueAtTime(390,t); osc.frequency.linearRampToValueAtTime(640,t+.22); osc.frequency.exponentialRampToValueAtTime(330,t+.58);
+            gain.gain.setValueAtTime(.0001,t); gain.gain.exponentialRampToValueAtTime(.045,t+.09); gain.gain.exponentialRampToValueAtTime(.0001,t+.61);
+            osc.connect(gain).connect(this.master); osc.start(t); osc.stop(t+.65);
+          }
+        }
+        latch() { this.burst(.22,.09,2800); this.thud(.35,120); }
+      }
+
+      function initAudio(){
+        if(!audio) audio=new Soundscape();
+        if(audio.ctx.state==='suspended') audio.ctx.resume();
+      }
+      function speak(text,kind='radio'){
+        if(state.muted||!('speechSynthesis' in window))return;
+        const u=new SpeechSynthesisUtterance(text); u.lang='ro-RO';
+        u.rate=kind==='radio'?.72:kind==='father'?.62:.76;
+        u.pitch=kind==='radio'?.55:kind==='father'?.42:.48;
+        u.volume=kind==='security'?.9:.56;
+        const voices=speechSynthesis.getVoices(); const ro=voices.find(v=>v.lang.toLowerCase().startsWith('ro'));
+        if(ro)u.voice=ro; speechSynthesis.speak(u);
+      }
+      function subtitle(pair,duration=3500){
+        clearTimeout(subtitleTimer); subtitleEl.textContent=pair[state.lang]||pair.en||pair.ro||'';
+        subtitleEl.classList.add('show'); subtitleTimer=setTimeout(()=>subtitleEl.classList.remove('show'),duration);
+      }
+      function notice(text,duration=1800){
+        clearTimeout(noticeTimer); noticeEl.textContent=text; noticeEl.classList.add('show');
+        noticeTimer=setTimeout(()=>noticeEl.classList.remove('show'),duration);
+      }
+      function setPrompt(which,on){ $(which).classList.toggle('show',on); }
+      function showHand(kind,duration=700){
+        clearTimeout(handTimer); hand.className=''; hand.src=`assets/hand-${kind}.png`; void hand.offsetWidth; hand.classList.add(kind);
+        handTimer=setTimeout(()=>{ if(kind!=='tune'||!state.dragging) hand.className=''; },duration);
+      }
+      function shake(kind){ game.classList.remove(kind); void game.offsetWidth; game.classList.add(kind); setTimeout(()=>game.classList.remove(kind),1300); }
+      function quality(){ return state.working?Math.max(0,1-Math.abs(state.tune-state.target)/.135):0; }
+      function setTune(value){
+        state.tune=Math.max(0,Math.min(1,value));
+        needle.style.left=`${43.7+state.tune*22.0}%`;
+        knobVisual.style.transform=`rotate(${-135+state.tune*270}deg)`;
+      }
+      function setLanguage(lang){
+        state.lang=lang; $('langButton').textContent=`SUB: ${lang.toUpperCase()}`;
+        $('titleLang').textContent=lang==='ro'?'SUBTITLES: ROMÂNĂ':'SUBTITLES: ENGLISH';
+      }
+      function toggleLanguage(){ setLanguage(state.lang==='ro'?'en':'ro'); }
+      function setMuted(value){
+        state.muted=value; const text=value?'SOUND: OFF':'SOUND: ON'; $('muteButton').textContent=text; $('titleMute').textContent=text;
+        if(audio)audio.setRadio(0); if(value&&'speechSynthesis'in window)speechSynthesis.cancel();
+      }
+      function startGame(){
+        initAudio(); state.mode='playing'; state.last=performance.now(); $('titleLayer').style.display='none';
+        setPrompt('promptFix',true); notice('LISTEN. KEEP IT QUIET.',2600);
+        subtitle({ro:'Pereții sunt subțiri. Nu da radioul tare.',en:'The walls are thin. Keep the radio quiet.'},4200);
+        requestAnimationFrame(tick);
+      }
+      function hitRadio(){
+        if(state.mode!=='playing')return; initAudio(); showHand('hit',720); shake('hit-shake'); audio.hit(); state.noiseHeat+=8;
+        if(!state.working){
+          state.working=true; state.decode=Math.max(0,state.decode-2); setPrompt('promptFix',false);
+          if(state.promptTune){setPrompt('promptTune',true);state.promptTune=false;}
+          notice('CONTACT',1100);
+        } else notice('TOO LOUD',900);
+      }
+      function startTune(e){
+        if(state.mode!=='playing'||!state.working)return; initAudio(); state.dragging=true; state.dragX=e.clientX; state.dragTune=state.tune;
+        tuneZone.setPointerCapture?.(e.pointerId); showHand('tune',999999); setPrompt('promptTune',false);
+      }
+      function moveTune(e){
+        if(!state.dragging)return; const rect=game.getBoundingClientRect(); setTune(state.dragTune+(e.clientX-state.dragX)/rect.width*1.75);
+      }
+      function endTune(){ state.dragging=false; hand.className=''; }
+      function startHush(){
+        if(state.mode!=='playing'||!state.crying)return; initAudio(); state.hush=0.01; setPrompt('promptShhh',false); showHand('shhh',2200);
+        speak('Șșș... liniște, puiule.', 'father'); subtitle({ro:'TATĂL: Șșș... liniște, puiule.',en:'FATHER: Shhh... quiet, little one.'},2300);
+      }
+      function endHush(){ if(state.hush>0&&state.crying)state.hush=0; }
+      function beginCry(){
+        if(state.crying||state.mode!=='playing')return; state.crying=true; state.hush=0; state.nextCryPulse=state.elapsed; hushZone.classList.add('active');
+        if(state.promptShhh){setPrompt('promptShhh',true);state.promptShhh=false;}
+        audio?.child(); subtitle({ro:'COPILUL: Tată...',en:'CHILD: Dad...'},2300);
+      }
+      function quietChild(){
+        state.crying=false; state.hush=0; hushZone.classList.remove('active'); setPrompt('promptShhh',false);
+        state.nextChild=state.elapsed+(fast?10:72+Math.random()*46); notice('QUIET',900);
+      }
+      function doorBreak(){
+        if(state.doorIndex>=securityLines.length)return; const line=securityLines[state.doorIndex++];
+        audio?.door(); shake('door-shake'); state.noiseHeat+=2; subtitle(line,4700); speak(line.ro,'security');
+        notice(state.doorIndex===3?'GROUND FLOOR':'ANOTHER DOOR',2100);
+      }
+      function revealFragment(){
+        if(state.fragmentBusy||state.stage>=3)return; state.fragmentBusy=true; const i=state.stage, fragment=fragments[i];
+        subtitle(fragment,6200); speak(fragment.ro,'radio'); notice(`MESSAGE ${i+1}/3`,2600);
+        const note=$(`note${String.fromCharCode(65+i)}`); note.textContent=fragment.note; note.classList.remove('blank'); note.classList.add('written');
+        state.stage++; state.decode=0;
+        setTimeout(()=>{
+          state.fragmentBusy=false;
+          if(state.stage<3){
+            state.target=targets[state.stage]; state.working=false; setPrompt('promptFix',true); notice('CONTACT LOST',2100);
+          } else {
+            state.mode='choice'; state.working=false; choiceLayer.classList.add('show');
+            subtitle({ro:'Mesaj complet. Pașii sunt aproape.',en:'Message complete. The steps are close.'},3500);
+          }
+        },fast?1900:6300);
+      }
+      function endGame(type){
+        if(state.mode==='end')return; state.mode='end'; state.working=false; choiceLayer.classList.remove('show');
+        setPrompt('promptFix',false);setPrompt('promptTune',false);setPrompt('promptShhh',false);hushZone.classList.remove('active');
+        if('speechSynthesis'in window)speechSynthesis.cancel();
+        const end=()=>{
+          endLayer.dataset.ending=type; endLayer.classList.add('show');
+          const data={
+            escape:['THE REAR YARD','You lift the child. The balcony latch gives once, then opens. Snow swallows your footsteps.','44°18′ N · 25°32′ E · 02:30'],
+            silence:['DEAD AIR','You kill the radio. The steps pass your door. The coordinates remain unfinished.','YOU SURVIVED · THE ROUTE DID NOT'],
+            raid:['THE DOOR','The lock gives way. Your hand freezes above the radio. The lamp hits the floor.','FILE 86 · TRANSMISSION ENDED']
+          }[type];
+          $('endTitle').textContent=data[0];$('endCopy').textContent=data[1];$('endingCode').textContent=data[2];
+        };
+        if(type==='raid'){
+          game.classList.add('raid'); audio?.door(); setTimeout(()=>audio?.door(),780); audio?.child();
+          subtitle({ro:'TATĂL: Nu! Copilul—',en:'FATHER: No! The child—'},2100); speak('Nu! Copilul—','father'); setTimeout(end,2200);
+        } else if(type==='escape'){
+          game.classList.add('escape'); audio?.latch(); audio?.windGain.gain.setTargetAtTime(state.muted?0:.12,audio.ctx.currentTime,.8);
+          subtitle({ro:'TATĂL: Acum. Fără zgomot.',en:'FATHER: Now. No noise.'},2600); speak('Acum. Fără zgomot.','father'); setTimeout(end,2600);
+        } else { subtitle({ro:'Radioul tace.',en:'The radio goes silent.'},1800); setTimeout(end,1500); }
+      }
+
+      function tick(now){
+        if(state.mode!=='playing'&&state.mode!=='choice')return;
+        const dt=Math.min(.12,(now-state.last)/1000||0); state.last=now; state.elapsed+=dt;
+        const q=quality();
+        if(state.mode==='playing'){
+          if(state.working&&state.elapsed>=gates[state.stage]&&q>.58&&!state.crying&&!state.fragmentBusy){
+            state.decode+=dt*(.42+q*.78);
+          } else if(q<.35||state.crying){ state.decode=Math.max(0,state.decode-dt*.09); }
+          if(state.stage<3&&state.decode>=needed[state.stage]) revealFragment();
+
+          const staticLoad=state.working?.08+(1-q)*.32:0;
+          state.noiseHeat+=dt*(staticLoad+(state.crying?.66:0));
+          if(!state.crying&&(!state.working||q>.72))state.noiseHeat=Math.max(0,state.noiseHeat-dt*.075);
+          state.danger=Math.min(100,10+state.elapsed/(fast?.52:10.6)+state.noiseHeat);
+
+          if(state.elapsed>=state.nextChild)beginCry();
+          if(state.crying){
+            if(state.elapsed>=state.nextCryPulse){audio?.child();state.nextCryPulse=state.elapsed+5.4;}
+            if(state.hush>0){state.hush+=dt;if(state.hush>=1.35)quietChild();}
+          }
+
+          if(state.doorIndex<3&&(state.elapsed>=doorTimes[state.doorIndex]||state.danger>=doorDanger[state.doorIndex]))doorBreak();
+          if(state.elapsed>=state.nextStep){
+            audio?.step(state.danger/100); state.nextStep=state.elapsed+Math.max(2.1,8.4-state.danger*.065);
+          }
+          if(state.danger>=100)endGame('raid');
+        }
+
+        const radioAmount=state.working?(.018+(1-q)*.16):.0001; audio?.setRadio(radioAmount);
+        signalEye.classList.toggle('live',state.working&&q>.72);
+        doorGlow.style.opacity=String(.12+state.danger/100*.72);
+        doorGlow.style.boxShadow=`0 0 ${8+state.danger*.13}px ${3+state.danger*.055}px rgba(241,171,76,${.18+state.danger/220})`;
+        requestAnimationFrame(tick);
+      }
+
+      const canvas=$('fx'), ctx=canvas.getContext('2d',{alpha:true}); ctx.imageSmoothingEnabled=false;
+      const flakes=Array.from({length:78},()=>({x:240+Math.random()*132,y:Math.random()*108,s:Math.random()<.72?1:2,v:.25+Math.random()*.55}));
+      let fxTime=0;
+      function drawFx(){
+        fxTime+=.016; ctx.clearRect(0,0,480,270);
+        ctx.save();ctx.beginPath();ctx.rect(240,0,132,108);ctx.clip();
+        for(const f of flakes){f.x-=f.v*.38;f.y+=f.v;if(f.y>110||f.x<238){f.x=250+Math.random()*130;f.y=-3;}ctx.fillStyle=f.s===2?'rgba(219,233,239,.86)':'rgba(173,199,211,.64)';ctx.fillRect(Math.round(f.x),Math.round(f.y),f.s,f.s);}
+        ctx.fillStyle='rgba(106,153,180,.14)';for(let i=0;i<7;i++){const x=248+i*19+Math.sin(fxTime+i)*2;ctx.fillRect(x,8+(i%3)*12,1,22+i*3);}ctx.restore();
+        for(let i=0;i<3;i++){const x=98+i*3+Math.sin(fxTime*1.1+i)*3,y=187-((fxTime*10+i*13)%27);ctx.fillStyle=`rgba(225,211,180,${.17-i*.035})`;ctx.fillRect(Math.round(x),Math.round(y),1,5);}
+        requestAnimationFrame(drawFx);
+      }
+
+      $('startButton').addEventListener('click',startGame);
+      hitZone.addEventListener('click',hitRadio);
+      tuneZone.addEventListener('pointerdown',startTune); window.addEventListener('pointermove',moveTune); window.addEventListener('pointerup',endTune);
+      tuneZone.addEventListener('wheel',(e)=>{e.preventDefault();if(state.working)setTune(state.tune-e.deltaY*.0009);},{passive:false});
+      tuneZone.addEventListener('keydown',(e)=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setTune(state.tune+(e.key==='ArrowRight'?.012:-.012));}});
+      hushZone.addEventListener('pointerdown',startHush); hushZone.addEventListener('pointerup',endHush); hushZone.addEventListener('pointerleave',endHush);
+      $('langButton').addEventListener('click',toggleLanguage);$('titleLang').addEventListener('click',toggleLanguage);
+      $('muteButton').addEventListener('click',()=>setMuted(!state.muted));$('titleMute').addEventListener('click',()=>setMuted(!state.muted));
+      $('escapeButton').addEventListener('click',()=>endGame('escape'));$('silenceButton').addEventListener('click',()=>endGame('silence'));
+      $('restartButton').addEventListener('click',()=>location.reload());
+      window.addEventListener('keydown',(e)=>{
+        if(e.key==='Escape'&&(state.mode==='playing'||state.mode==='choice'))endGame('silence');
+        if(e.key.toLowerCase()==='f')hitRadio();
+        if(e.key.toLowerCase()==='s'&&state.crying)startHush();
+      });
+      window.addEventListener('keyup',(e)=>{if(e.key.toLowerCase()==='s')endHush();});
+      setTune(state.tune);setLanguage('ro');drawFx();
+    })();
+  </script>
+</body>
+</html>
