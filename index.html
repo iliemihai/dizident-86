@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dizident 86 — Noaptea în bloc</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #020406; overflow: hidden; }
+  body { display: grid; place-items: center; font: 13px/1.3 "Helvetica Neue", Arial, sans-serif; color: #c8bda7; }
+  #stage { position: relative; }
+  #stage canvas { display: block; }
+  .hud { position: absolute; pointer-events: none; letter-spacing: .04em; }
+  #chapter { top: 3.3%; left: 2.5%; }
+  #title { bottom: 2.4%; left: 2.5%; font-size: 11px; color: #bba078; }
+  #keys { bottom: 2.4%; right: 2.5%; font-size: 11px; color: #8f8674; text-align: right; }
+  #prompt { left: 50%; bottom: 11%; transform: translateX(-50%); padding: 6px 14px; background: rgba(4,6,7,.62);
+            border: 1px solid rgba(187,160,120,.35); opacity: 0; transition: opacity .25s; white-space: nowrap; }
+  #prompt b { color: #eadabf; margin-right: 8px; }
+  #line { left: 50%; bottom: 17%; transform: translateX(-50%); font-size: 15px; font-style: italic; color: #eadabf;
+          text-shadow: 0 1px 3px #000; opacity: 0; transition: opacity .4s; white-space: nowrap; }
+  #fade { position: absolute; inset: 0; background: #040506; opacity: 1; transition: opacity .35s; pointer-events: none; }
+  .hidden .hud { visibility: hidden; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="chapter" class="hud"></div>
+  <div id="title" class="hud">DIZIDENT 86 &nbsp;/&nbsp; NOAPTEA ÎN BLOC</div>
+  <div id="keys" class="hud">Click oriunde: merge acolo · pe obiect: îl folosește · dublu-click grăbit · A/D mers · M sunet</div>
+  <div id="prompt" class="hud"></div>
+  <div id="line" class="hud"></div>
+  <div id="fade"></div>
+</div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
